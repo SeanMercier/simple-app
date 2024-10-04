@@ -1,54 +1,33 @@
 import { Handler } from "aws-lambda";
-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-// Initialization
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+
+// Initialize DynamoDB Document Client
 const ddbDocClient = createDDbDocClient();
+
 // Handler
 export const handler: Handler = async (event, context) => {
   try {
     console.log("Event: ", JSON.stringify(event));
-    const parameters = event?.queryStringParameters;
-    const movieId = parameters ? parseInt(parameters.movieId) : undefined;
 
-    if (!movieId) {
-      return {
-        statusCode: 404,
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ Message: "Missing movie Id" }),
-      };
-    }
+    // Execute ScanCommand to retrieve all items from the table 'Movies'
     const commandOutput = await ddbDocClient.send(
-      new GetCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: { id: movieId },
+      new ScanCommand({
+        TableName: 'Movies'
       })
     );
-    if (!commandOutput.Item) {
-      return {
-        statusCode: 404,
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ Message: "Invalid movie Id" }),
-      };
-    }
-    const body = {
-      data: commandOutput.Item,
-    };
+    console.log('ScanCommand response: ', commandOutput);
 
-    // Return Response
+    // Return the result
     return {
       statusCode: 200,
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ data: commandOutput.Items }),
     };
   } catch (error: any) {
-    console.log(JSON.stringify(error));
+    console.error(JSON.stringify(error));
     return {
       statusCode: 500,
       headers: {
@@ -59,8 +38,9 @@ export const handler: Handler = async (event, context) => {
   }
 };
 
+// Helper function to create DynamoDB Document Client
 function createDDbDocClient() {
-  const ddbClient = new DynamoDBClient({ region: process.env.REGION });
+  const ddbClient = new DynamoDBClient({ region: 'eu-west-1' });
   const marshallOptions = {
     convertEmptyValues: true,
     removeUndefinedValues: true,
