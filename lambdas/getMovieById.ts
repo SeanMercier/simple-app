@@ -14,7 +14,7 @@ export const handler: Handler = async (event, context) => {
     const commandOutput = await ddbDocClient.send(
       new ScanCommand({
         TableName: 'Movies'
-      })
+      }) 
     );
     console.log('ScanCommand response: ', commandOutput);
 
